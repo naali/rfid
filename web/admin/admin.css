@@ -1,0 +1,55 @@
+tr.ui-row-ltr td[title="Not Active"][aria-describedby="members_active"],
+tr.ui-row-ltr td[title="Not Active"][aria-describedby="keys_active"],
+tr.ui-row-ltr td[title="Not Active"][aria-describedby="accesslog_active"], 
+tr.ui-row-ltr td[title="No"][aria-describedby="accesslog_agranted"] {
+	background-color: #E49E9A;
+}
+
+tr.ui-row-ltr td[title="Active"][aria-describedby="members_active"],
+tr.ui-row-ltr td[title="Active"][aria-describedby="keys_active"],
+tr.ui-row-ltr td[title="Active"][aria-describedby="accesslog_active"],
+tr.ui-row-ltr td[title="Yes"][aria-describedby="accesslog_agranted"] {
+	background-color: #9EE49A;
+}
+
+tr.ui-row-ltr.ui-state-hover td[title="Not Active"][aria-describedby="members_active"],
+tr.ui-row-ltr.ui-state-hover td[title="Not Active"][aria-describedby="keys_active"],
+tr.ui-row-ltr.ui-state-hover td[title="Not Active"][aria-describedby="accesslog_active"], 
+tr.ui-row-ltr.ui-state-hover td[title="No"][aria-describedby="accesslog_agranted"] {
+	background: repeating-linear-gradient(45deg, #ededed, #ededed 10px, #E49E9A 10px, #E49E9A 20px);
+}
+
+tr.ui-row-ltr.ui-state-hover td[title="Active"][aria-describedby="members_active"],
+tr.ui-row-ltr.ui-state-hover td[title="Active"][aria-describedby="keys_active"],
+tr.ui-row-ltr.ui-state-hover td[title="Active"][aria-describedby="accesslog_active"], 
+tr.ui-row-ltr.ui-state-hover td[title="Yes"][aria-describedby="accesslog_agranted"] {
+	background: repeating-linear-gradient(45deg, #ededed, #ededed 10px, #9EE49A 10px, #9EE49A 20px);
+}
+
+tr.ui-row-ltr.ui-state-highlight td[title="Not Active"][aria-describedby="members_active"],
+tr.ui-row-ltr.ui-state-highlight td[title="Not Active"][aria-describedby="keys_active"],
+tr.ui-row-ltr.ui-state-highlight td[title="Not Active"][aria-describedby="accesslog_active"], 
+tr.ui-row-ltr.ui-state-highlight td[title="No"][aria-describedby="accesslog_agranted"] {
+	background: repeating-linear-gradient(45deg, #fffa90, #fffa90 10px, #E49E9A 10px, #E49E9A 20px);
+}
+
+tr.ui-row-ltr.ui-state-highlight td[title="Active"][aria-describedby="members_active"],
+tr.ui-row-ltr.ui-state-highlight td[title="Active"][aria-describedby="keys_active"],
+tr.ui-row-ltr.ui-state-highlight td[title="Active"][aria-describedby="accesslog_active"], 
+tr.ui-row-ltr.ui-state-highlight td[title="Yes"][aria-describedby="accesslog_agranted"] {
+	background: repeating-linear-gradient(45deg, #fffa90, #fffa90 10px, #9EE49A 10px, #9EE49A 20px);
+}
+
+.ui-pg-button.ui-corner-all.ui-state-disabled:hover {
+	padding: 0px 1px;
+}
+
+.ui-pg-button.ui-corner-all.ui-state-disabled {
+	padding: 0px 1px;
+}
+
+input.ui-pg-input.ui-corner-all[type="text"] {
+	font-size: 11px;
+	text-align: center;
+}
+
