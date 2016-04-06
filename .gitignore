@@ -1,3 +1,6 @@
 .DS_Store
-mysql/create_database.sql
+create_database.sql
+db_web_config.php
+db_rpi_config.php
+
 
