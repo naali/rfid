@@ -3,7 +3,7 @@
 	
 	function updateLastSeen($sqlclient, $readername) {
 		$sqlclient->query(
-			"INSERT INTO `readers` (readername) VALUES ('$readername') ".
+			"INSERT INTO `readers` (readername, ts_created) VALUES ('$readername', CURRENT_TIMESTAMP) ".
 			"ON DUPLICATE KEY UPDATE ts_lastseen=CURRENT_TIMESTAMP"
 		);
 	}
@@ -15,7 +15,7 @@
 		updateLastSeen($sqlclient, $accessreq);
 
 		if ($result = $sqlclient->query(
-				"INSERT INTO `keys` (hash) SELECT * FROM (SELECT '$keyhash') AS tmp ".
+				"INSERT INTO `keys` (hash, ts_created) SELECT * FROM (SELECT '$keyhash', CURRENT_TIMESTAMP) AS tmp ".
 				"WHERE NOT EXISTS (SELECT hash FROM `keys` WHERE hash='$keyhash') LIMIT 1")) {
 				
 			if ($result = $sqlclient->query(

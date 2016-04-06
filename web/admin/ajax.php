@@ -171,9 +171,9 @@
 	function addMember($sqlclient, $data) {
 
 		if ($result = $sqlclient->query(
-			"INSERT INTO `members` (mid, mname, email, phonenumber, active) ".
+			"INSERT INTO `members` (mid, mname, email, phonenumber, active, ts_created) ".
 			"VALUES ('".$data['mid']."', '".$data['mname']."', '".$data['email'].
-			"', '".$data['phonenumber']."', ".$data['active'].")"
+			"', '".$data['phonenumber']."', ".$data['active'].", CURRENT_TIMESTAMP)"
 		)) {
 
 			return true;
