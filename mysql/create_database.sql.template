@@ -1,0 +1,69 @@
+DROP DATABASE IF EXISTS `rfid`;
+	
+CREATE DATABASE IF NOT EXISTS`rfid` DEFAULT CHARACTER SET=utf8 DEFAULT COLLATE=utf8_general_ci;
+use `rfid`;
+
+CREATE TABLE `members` (
+	id INTEGER NOT NULL AUTO_INCREMENT,
+	mid VARCHAR(32) NOT NULL UNIQUE,
+	mname VARCHAR(50) NOT NULL DEFAULT 'Testi Ukkeli',
+	email VARCHAR(60) DEFAULT 'firstname.lastname@example.com',
+	phonenumber VARCHAR(20) DEFAULT '',
+	active BOOLEAN NOT NULL DEFAULT TRUE,
+	ts_created timestamp DEFAULT CURRENT_TIMESTAMP,
+	ts_edited timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+	primary KEY (id, mid)
+) ENGINE=InnoDB;
+
+CREATE TABLE `keys` (
+ 	id INTEGER NOT NULL AUTO_INCREMENT,
+ 	ownerid INTEGER DEFAULT NULL REFERENCES `members`.id,
+ 	hash VARCHAR(32) NOT NULL UNIQUE,
+ 	active BOOLEAN NOT NULL DEFAULT FALSE,
+ 	ktype enum('master', 'member', 'guest', 'unknown', 'lost') DEFAULT 'unknown',
+ 	ts_created timestamp DEFAULT CURRENT_TIMESTAMP,
+ 	ts_edited timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ 	PRIMARY KEY(id, hash)
+) ENGINE=InnoDB;
+
+CREATE TABLE `accesses` (
+ 	id INTEGER NOT NULL AUTO_INCREMENT,
+ 	ownername VARCHAR(50) NOT NULL DEFAULT 'Not assigned',
+ 	ownerid INTEGER DEFAULT NULL REFERENCES `members`.id,
+ 	hash VARCHAR(32) NOT NULL,
+ 	ktype enum('master', 'member', 'guest', 'unknown', 'lost') DEFAULT 'unknown',
+ 	request VARCHAR(32) NOT NULL DEFAULT 'UNKNOWN AREA',
+ 	active BOOLEAN NOT NULL,
+ 	agranted BOOLEAN NOT NULL DEFAULT FALSE,
+ 	ts_created timestamp DEFAULT CURRENT_TIMESTAMP,
+	PRIMARY KEY (id)
+) ENGINE=InnoDB;
+
+CREATE TABLE `readers` (
+	id INTEGER NOT NULL AUTO_INCREMENT,
+	readername VARCHAR(32) UNIQUE NOT NULL,
+ 	ts_lastseen timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ 	ts_created timestamp DEFAULT CURRENT_TIMESTAMP,
+ 	PRIMARY KEY (id)
+) ENGINE=InnoDB;
+
+DROP USER 'rfid_rpi'@'localhost';
+DROP USER 'rfid_web'@'localhost';
+DROP USER 'rfid_admin'@'localhost';
+
+CREATE USER 'rfid_rpi'@'localhost' IDENTIFIED BY 'RFID_RPI_PASSWD';
+GRANT SELECT ON `rfid`.`members` TO 'rfid_rpi'@'localhost';
+GRANT SELECT, INSERT ON `rfid`.`keys` TO 'rfid_rpi'@'localhost';
+GRANT INSERT ON `rfid`.`accesses` TO 'rfid_rpi'@'localhost';
+GRANT INSERT, UPDATE ON `rfid`.`readers` TO 'rfid_rpi'@'localhost';
+
+CREATE USER 'rfid_web'@'localhost' IDENTIFIED BY 'RFID_WEB_PASSWD';
+GRANT INSERT, SELECT, UPDATE ON `rfid`.`members` TO 'rfid_web'@'localhost';
+GRANT SELECT, UPDATE ON `rfid`.`keys` TO 'rfid_web'@'localhost';
+GRANT SELECT ON `rfid`.`accesses` TO 'rfid_web'@'localhost';
+GRANT SELECT ON `rfid`.`readers` TO 'rfid_web'@'localhost';
+
+CREATE USER 'rfid_admin'@'localhost' IDENTIFIED BY 'RFID_ADMIN_PASSWD';
+GRANT ALL PRIVILEGES ON `rfid`.* TO 'rfid_admin'@'localhost' WITH GRANT OPTION;
+
+FLUSH PRIVILEGES;
