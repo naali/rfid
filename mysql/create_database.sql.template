@@ -8,6 +8,7 @@ CREATE TABLE `members` (
 	mid VARCHAR(32) NOT NULL UNIQUE,
 	mname VARCHAR(50) NOT NULL DEFAULT 'Testi Ukkeli',
 	email VARCHAR(60) DEFAULT 'firstname.lastname@example.com',
+	pincode VARCHAR(10) NOT NULL DEFAULT '7952',
 	phonenumber VARCHAR(20) DEFAULT '',
 	active BOOLEAN NOT NULL DEFAULT TRUE,
 	ts_created timestamp DEFAULT 0,
@@ -21,6 +22,8 @@ CREATE TABLE `keys` (
  	hash VARCHAR(32) NOT NULL UNIQUE,
  	active BOOLEAN NOT NULL DEFAULT FALSE,
  	ktype enum('master', 'member', 'guest', 'unknown', 'lost') DEFAULT 'unknown',
+ 	valid_from DATETIME DEFAULT NULL,
+ 	valid_until DATETIME DEFAULT NULL,
  	ts_created timestamp DEFAULT 0,
  	ts_edited timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
  	PRIMARY KEY(id, hash)
@@ -42,6 +45,7 @@ CREATE TABLE `accesses` (
 CREATE TABLE `readers` (
 	id INTEGER NOT NULL AUTO_INCREMENT,
 	readername VARCHAR(32) UNIQUE NOT NULL,
+	require_pin BOOLEAN NOT NULL DEFAULT TRUE,
  	ts_lastseen timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
  	ts_created timestamp DEFAULT 0,
  	PRIMARY KEY (id)
