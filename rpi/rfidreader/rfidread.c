@@ -21,8 +21,9 @@
 #define KEYVALIDSEQ "\xAF\xFF\x05\x04\xDF"
 #define ACCESSREQ "SIDEDOOR" /* ACCESSREQ = What this reader controls */
 #define KEYSERVERURL "https://club00570.org/rfid/index.php" /* KEYSERVERURL = Where is rfid/index.php? */
-#define HASHING1 "Kulosaari"
-#define HASHING2 "00570"
+#define HASHING1 "SOMETHING1"
+#define HASHING2 "SOMETHING2"
+#define HTTPAUTH_PASSWORD "password12345"
 
 uint64_t get_timestamp(void) {
 	struct timeval t;
@@ -74,6 +75,7 @@ bool validate_key(unsigned char * md5digest, const char * accessreq, char * pinc
 	unsigned char * expectedresponse_str = calloc((MD5_DIGEST_LENGTH * 2) + 1, sizeof(char));
 	unsigned char * responsebuffer = calloc((MD5_DIGEST_LENGTH * 2) + 1, sizeof(char));
 	char * postbuffer = calloc(1024, sizeof(char));
+	char * authbuffer = calloc(1024, sizeof(char));
 
 	const char * SOMETHING1 = HASHING1;
 	const char * SOMETHING2 = HASHING2;
@@ -113,10 +115,14 @@ bool validate_key(unsigned char * md5digest, const char * accessreq, char * pinc
 		sprintf(postbuffer, "k=%s&a=%s&p=%s", md5buffer, accessreq, pincode);
 		fprintf(stdout, "Query: %s\n", postbuffer);
 		fflush(stdout);
+		
+		sprintf(authbuffer, "%s:%s", accessreq, HTTPAUTH_PASSWORD);
 
 		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postbuffer);
 		curl_easy_setopt(curl, CURLOPT_FRESH_CONNECT, 1);
 		curl_easy_setopt(curl, CURLOPT_HEADER, 1);
+		curl_easy_setopt(curl, CURLOPT_HTTPAUTH, (long)CURLAUTH_BASIC);
+		curl_easy_setopt(curl, CURLOPT_USERPWD, authbuffer);
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, header_write_func);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)responsebuffer);
 		res = curl_easy_perform(curl);
@@ -135,6 +141,7 @@ bool validate_key(unsigned char * md5digest, const char * accessreq, char * pinc
 	}
 	
 	curl_global_cleanup();
+	free(authbuffer);
 	free(postbuffer);
 	free(md5buffer);
 	free(responsebuffer);
