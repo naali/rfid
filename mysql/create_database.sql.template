@@ -8,7 +8,7 @@ CREATE TABLE `members` (
 	mid VARCHAR(32) NOT NULL UNIQUE,
 	mname VARCHAR(50) NOT NULL DEFAULT 'Testi Ukkeli',
 	email VARCHAR(60) DEFAULT 'firstname.lastname@example.com',
-	pincode VARCHAR(10) NOT NULL DEFAULT '7952',
+	pincode VARCHAR(10) NOT NULL DEFAULT '',
 	phonenumber VARCHAR(20) DEFAULT '',
 	active BOOLEAN NOT NULL DEFAULT TRUE,
 	ts_created timestamp DEFAULT 0,
@@ -59,13 +59,13 @@ CREATE USER 'rfid_rpi'@'localhost' IDENTIFIED BY 'RFID_RPI_PASSWD';
 GRANT SELECT ON `rfid`.`members` TO 'rfid_rpi'@'localhost';
 GRANT SELECT, INSERT ON `rfid`.`keys` TO 'rfid_rpi'@'localhost';
 GRANT INSERT ON `rfid`.`accesses` TO 'rfid_rpi'@'localhost';
-GRANT INSERT, UPDATE ON `rfid`.`readers` TO 'rfid_rpi'@'localhost';
+GRANT SELECT, INSERT, UPDATE ON `rfid`.`readers` TO 'rfid_rpi'@'localhost';
 
 CREATE USER 'rfid_web'@'localhost' IDENTIFIED BY 'RFID_WEB_PASSWD';
 GRANT INSERT, SELECT, UPDATE ON `rfid`.`members` TO 'rfid_web'@'localhost';
 GRANT SELECT, UPDATE ON `rfid`.`keys` TO 'rfid_web'@'localhost';
 GRANT SELECT ON `rfid`.`accesses` TO 'rfid_web'@'localhost';
-GRANT SELECT ON `rfid`.`readers` TO 'rfid_web'@'localhost';
+GRANT SELECT, UPDATE ON `rfid`.`readers` TO 'rfid_web'@'localhost';
 
 CREATE USER 'rfid_admin'@'localhost' IDENTIFIED BY 'RFID_ADMIN_PASSWD';
 GRANT ALL PRIVILEGES ON `rfid`.* TO 'rfid_admin'@'localhost' WITH GRANT OPTION;
