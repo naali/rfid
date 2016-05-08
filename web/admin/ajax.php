@@ -39,6 +39,13 @@
 				case 'allmembers':
 					$data = getAllMembers($mysqli);
 					break;
+				case 'editreader':
+					$sane = sanitizeEditReaderParameters($mysqli, $_POST);
+					if ($sane['oper'] == 'edit') {
+						$data = editReader($mysqli, $sane);
+					}
+					
+					break;
 				case 'editmember':
 					$sane = sanitizeEditMemberParameters($mysqli, $_POST);
 
@@ -67,10 +74,31 @@
 	$mysqli->close();
 	echo json_encode($data);
 	
+	function sanitizeEditReaderParameters($sqlclient, $d) {
+		$id = $sqlclient->real_escape_string($d['id']);
+		$require_pin = intval($sqlclient->real_escape_string($d['require_pin']));
+		$oper = $d['oper'];
+		
+		if ($require_pin != 1 && $require_pin != 0) {
+			$require_pin = 1;
+		}
+		
+		$retdata = [];
+		
+		if ($oper != 'edit') {
+			exit;
+		}
+		
+		$retdata['oper'] = trim($oper);
+		$retdata['id'] = intval($id);
+		$retdata['require_pin'] = intval($require_pin);
+
+		return $retdata;
+	}
+	
 	function sanitizeEditKeyParameters($sqlclient, $d) {
 		$id = $sqlclient->real_escape_string($d['id']);
 		$ownerid = $sqlclient->real_escape_string($d['ownerid']);
-		$ownername = $sqlclient->real_escape_string($d['ownername']);
 		$ktype = $sqlclient->real_escape_string($d['ktype']);
 		$active = intval($sqlclient->real_escape_string($d['active']));
 		$oper = $d['oper'];
@@ -81,9 +109,7 @@
 		
 		$retdata = [];
 		
-		if ($oper == 'edit') {
-			$retdata['id'] = intval($id);
-		} else {
+		if ($oper != 'edit') {
 			exit;
 		}
 		
@@ -100,10 +126,8 @@
 		}
 		
 		$retdata['ownerid'] = $ownerid;
-		$retdata['ownername'] = trim($ownername);
 		$retdata['ktype'] = trim($ktype);
 		$retdata['active'] = $active;
-		print_r($retdata);
 		
 		return $retdata;
 	}
@@ -113,6 +137,7 @@
 		$mid = $sqlclient->real_escape_string($d['mid']);
 		$mname = $sqlclient->real_escape_string($d['mname']);
 		$email = $sqlclient->real_escape_string($d['email']);
+		$pincode = $sqlclient->real_escape_string($d['pincode']);
 		$phonenumber = $sqlclient->real_escape_string($d['phonenumber']);
 		$active = intval($sqlclient->real_escape_string($d['active']));
 		$oper = $d['oper'];
@@ -135,6 +160,7 @@
 		$retdata['mid'] = trim($mid);
 		$retdata['mname'] = trim($mname);
 		$retdata['email'] = trim($email);
+		$retdata['pincode'] = trim($pincode);
 		$retdata['phonenumber'] = trim($phonenumber);
 		$retdata['active'] = $active;
 		
@@ -171,9 +197,9 @@
 	function addMember($sqlclient, $data) {
 
 		if ($result = $sqlclient->query(
-			"INSERT INTO `members` (mid, mname, email, phonenumber, active, ts_created) ".
+			"INSERT INTO `members` (mid, mname, email, phonenumber, pincode, active, ts_created) ".
 			"VALUES ('".$data['mid']."', '".$data['mname']."', '".$data['email'].
-			"', '".$data['phonenumber']."', ".$data['active'].", CURRENT_TIMESTAMP)"
+			"', '".$data['phonenumber']."', '".$data['pincode']."', ".$data['active'].", CURRENT_TIMESTAMP)"
 		)) {
 
 			return true;
@@ -181,16 +207,31 @@
 		return false;
 	}
 	
+	function editReader($sqlclient, $data) {
+		if ($result = $sqlclient->query(
+			"UPDATE `readers` SET ".
+			"require_pin=".$data['require_pin']." ".
+			"WHERE id=".$data['id']
+		)) {
+			return true;
+		}
+//		echo "ERR: " . $sqlclient->error;
+		return false;
+	}
+	
 	function editMember($sqlclient, $data) {
 		if ($result = $sqlclient->query(
 			"UPDATE `members` SET mid='".$data['mid']."', ".
 			"mname='".$data['mname']."', email='".$data['email']."', ".
-			"phonenumber='".$data['phonenumber']."', active=".$data['active']." ".
+			"phonenumber='".$data['phonenumber']."', ".
+			"pincode='".$data['pincode']."', ".
+			"active=".$data['active']." ".
 			"WHERE id=".$data['id']
 		)) {
 			return true;
 		}
 		
+//		echo "ERR: " . $sqlclient->error;
 		return false;
 	}
 	
@@ -202,7 +243,7 @@
 		)) {
 			return true;
 		}
-		echo "ERR: " . $sqlclient->error;
+//		echo "ERR: " . $sqlclient->error;
 		return false;
 	}
 	
