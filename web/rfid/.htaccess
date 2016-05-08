@@ -1,0 +1,4 @@
+AuthType Basic
+AuthName "RFID Reader"
+AuthUserFile "/var/www/passwords/.htpasswd-rfid"
+Require valid-user

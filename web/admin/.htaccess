@@ -1,0 +1,4 @@
+AuthType Basic
+AuthName "Member Access Control"
+AuthUserFile "/var/www/passwords/.htpasswd-admin"
+Require valid-user
