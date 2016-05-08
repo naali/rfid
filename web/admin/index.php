@@ -13,7 +13,7 @@
 		<script src="js/i18n/grid.locale-en.js"></script>
 		<script src="js/jquery.jqGrid.min.js"></script>
 		<script>var global = {};</script>
-		<script src="admin.js"></script>
+		<script src="admin.js?<?php echo rand();?>"></script>
 		<script>$(document).ready(function() { initialize(); }); </script>
 	</head>
 	<body>

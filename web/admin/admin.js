@@ -81,24 +81,16 @@ function loadAccessLogTab() {
 	$('#accesslog').jqGrid('navGrid', '#accesslog_pager', {edit: false, del: false, add: false, search: false});
 }
 
-/*
-CREATE TABLE `readers` (
-	id INTEGER NOT NULL AUTO_INCREMENT,
-	readername VARCHAR(32) UNIQUE NOT NULL,
- 	ts_lastseen timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
- 	ts_created timestamp DEFAULT CURRENT_TIMESTAMP,
- 	PRIMARY KEY (id)
-) ENGINE=InnoDB;
-*/
-
 function loadReadersTab() {
 	$('#readers').jqGrid({
 		url: 'ajax.php?a=readers',
+		editurl: 'ajax.php?a=editreader',
 		datatype: 'json',
-		colNames: ['ID', 'Reader Name', 'Last seen', 'First seen'],
+		colNames: ['ID', 'Reader Name', 'Require PIN Entry', 'Last seen', 'First seen'],
 		colModel: [
 			{name: 'id', index: 'id', editable: false, width: 30, align: 'center'},
 			{name: 'readername', index: 'readername', editable: false, width: 100, align: 'center'},
+			{name: 'require_pin', index: 'require_pin', editable: true, formatter:'select', edittype: "select", editoptions: { value: "1:Require PIN;0: No PIN"}, width: 150, align: 'center'},
 			{name: 'ts_lastseen', index: 'ts_lastseen', editable: false, align: 'center'},
 			{name: 'ts_created', index: 'ts_created', editable: false, align: 'center'},
 		],
@@ -106,7 +98,7 @@ function loadReadersTab() {
 		height: '100%',
 		rowNum: 15,
 	    emptyrecords: "Nothing to see here.",
-	   	pager: "#readername",
+	   	pager: "#readers_pager",
 	    viewrecords: true,
 	   	sortname: 'ts_created',
 	   	sortorder: 'desc',
@@ -117,7 +109,7 @@ function loadReadersTab() {
 		gridComplete: resizeTab('readers')
 	});
 	
-	$('#readers').jqGrid('navGrid', '#readers_pager', {edit: false, del: false, add: false, search: false});
+	$('#readers').jqGrid('navGrid', '#readers_pager', {edit: true, del: false, add: false, search: false});
 }
 
 function loadMembersTab() {
@@ -125,13 +117,14 @@ function loadMembersTab() {
 		url: 'ajax.php?a=members',
 		editurl: 'ajax.php?a=editmember',
 		datatype: 'json',
-		colNames: ['ID', 'Member ID', 'Name', 'Email', 'Phonenumber', 'Active', 'Last Edit', 'Added On'],
+		colNames: ['ID', 'Member ID', 'Name', 'Email', 'Phonenumber', 'Pincode', 'Active', 'Last Edit', 'Added On'],
 		colModel: [
 			{name: 'id', index: 'id', editable: false, width: 30, align: 'center'},
 			{name: 'mid', index: 'mid', editable: true, width: 50, align: 'center'},
 			{name: 'mname', index: 'mname', editable:true, width: 150, align: 'center'},
 			{name: 'email', index: 'email', editable:true, width: 150, align: 'center'},
 			{name: 'phonenumber', index: 'phonenumber', editable: true, width: 100, align: 'center'},
+			{name: 'pincode', index: 'pincode', editable:true, width: 50, align: 'center'},
 			{name: 'active', index: 'active', editable: true, formatter:'select', edittype:"select", editoptions: {value:"1:Active;0:Not Active"}, width: 50, align: 'center'},
 			{name: 'ts_edited', index: 'ts_edited', width: 100, align: 'center'},
 			{name: 'ts_created', index: 'ts_created', width: 100, align: 'center'}
