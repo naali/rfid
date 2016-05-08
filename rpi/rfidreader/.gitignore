@@ -1,2 +1,7 @@
 relaycontrol.o
 rfidread
+cJSON.o
+cJSON_Utils.o
+serialsetup.o
+
+

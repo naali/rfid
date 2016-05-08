@@ -12,18 +12,19 @@
 #include <openssl/md5.h>
 #include <curl/curl.h>
 
-#include "relaycontrol.h"
+#include "cJSON.h"
 
-#define RFIDDEVICE "/dev/hidraw0"
+#include "serialsetup.h"
+
+#define RFIDDEVICE "/dev/ttyUSB1"
 #define RELAYDEVICE "/dev/ttyUSB0"
-#define MAXKEYBYTES 1024
-#define OPENSECONDS "\x05"
-#define KEYVALIDSEQ "\xAF\xFF" OPENSECONDS "\x04\xDF"
-#define ACCESSREQ "TESTDOOR" /* ACCESSREQ = What this reader controls */
-#define KEYSERVERURL "http://127.0.0.1/rfid/index.php" /* KEYSERVERURL = Where is rfid/index.php? */
+#define KEYVALIDSEQ "\xAF\xFF\x05\x04\xDF"
+#define ACCESSREQ "SIDEDOOR" /* ACCESSREQ = What this reader controls */
+#define KEYSERVERURL "https://club00570.org/rfid/index.php" /* KEYSERVERURL = Where is rfid/index.php? */
+#define HASHING1 "Kulosaari"
+#define HASHING2 "00570"
 
-
-uint64_t get_timestamp() {
+uint64_t get_timestamp(void) {
 	struct timeval t;
 	gettimeofday(&t, NULL);
 	return 1000000 * t.tv_sec + t.tv_usec;
@@ -67,15 +68,15 @@ size_t header_write_func(void *ptr, size_t size, size_t nmemb, void *userdata) {
 	return size * nmemb;
 }
 
-bool validate_key(unsigned char * md5digest, char * accessreq) {
+bool validate_key(unsigned char * md5digest, const char * accessreq, char * pincode) {
 	char * md5buffer = calloc((MD5_DIGEST_LENGTH * 2) + 1, sizeof(char));
 	unsigned char * expectedresponse_bin = calloc(MD5_DIGEST_LENGTH + 1, sizeof(char));
 	unsigned char * expectedresponse_str = calloc((MD5_DIGEST_LENGTH * 2) + 1, sizeof(char));
 	unsigned char * responsebuffer = calloc((MD5_DIGEST_LENGTH * 2) + 1, sizeof(char));
 	char * postbuffer = calloc(1024, sizeof(char));
 
-	const char * SOMETHING1 = "Kulosaari";
-	const char * SOMETHING2 = "00570";
+	const char * SOMETHING1 = HASHING1;
+	const char * SOMETHING2 = HASHING2;
 
 	CURL *curl;
 	CURLcode res;
@@ -109,8 +110,12 @@ bool validate_key(unsigned char * md5digest, char * accessreq) {
 	
 	if (curl) {
 		curl_easy_setopt(curl, CURLOPT_URL, KEYSERVERURL);
-		sprintf(postbuffer, "k=%s&a=%s", md5buffer, accessreq);
+		sprintf(postbuffer, "k=%s&a=%s&p=%s", md5buffer, accessreq, pincode);
+		fprintf(stdout, "Query: %s\n", postbuffer);
+		fflush(stdout);
+
 		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postbuffer);
+		curl_easy_setopt(curl, CURLOPT_FRESH_CONNECT, 1);
 		curl_easy_setopt(curl, CURLOPT_HEADER, 1);
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, header_write_func);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)responsebuffer);
@@ -140,15 +145,20 @@ bool validate_key(unsigned char * md5digest, char * accessreq) {
 }
 
 int main (void) {
-	int reader, serial;
-	bool rd_started = false;  
-	uint64_t rd_start_ts = 0;
+	int RFIDReaderFD, serial;
+	bool rd_started = false;
 	
 	printf("Trying to open RFID reader: %s\n", RFIDDEVICE);
-	reader = open(RFIDDEVICE, O_NONBLOCK | O_RDONLY);
-	unsigned char * buffer = calloc(MAXKEYBYTES + 8 + 1, sizeof(unsigned char));
-	unsigned int buffer_ptr = 0;
-
+	RFIDReaderFD = open_serial_interface(RFIDDEVICE);
+	
+	if (RFIDReaderFD > 0) {
+		int retval = setup_serial_interface(RFIDReaderFD, B9600, 0);
+		if (retval != 0) {
+			printf("Reader serial configuration failed\n");
+			exit(255);
+		}
+	}
+	
 	unsigned char * md5digest = calloc(MD5_DIGEST_LENGTH + 1, sizeof(unsigned char));
 
 	printf("Trying to open USB-serial relay: %s\n", RELAYDEVICE);
@@ -162,70 +172,90 @@ int main (void) {
 		}
 	}
 
-	if (reader != 0 && serial > 0) {
+	if (RFIDReaderFD != 0 && serial > 0) {
 		printf("Listening to RFID reader: %s\n", RFIDDEVICE);
 
+		char readbuffer[1024];
+		char jsonbuffer[1024];
+		int jsonbufferptr = 0;
+		
 		while (1) {
-			int count = read(reader, buffer + buffer_ptr, 8);
-
-			if (count > 0) {
-				if (!rd_started) {
-					rd_started = true;
-					rd_start_ts = get_timestamp();
-				}
-				
-				buffer_ptr += count;
-			} else {
+			ssize_t length = read(RFIDReaderFD, &readbuffer, sizeof(readbuffer));
+			
+			if (length == -1) {
+				printf("Error reading RFID reader: %s\n", RFIDDEVICE);
+			} else if (length == 0) {
 				if (rd_started) {
-					usleep(1000);
+					usleep(10000);
 				} else {
 					usleep(1000 * 100);
 				}
-			}
-
-			if (rd_started) {
-				uint64_t ts_diff = get_timestamp() - rd_start_ts;
-				if (ts_diff > 200000 || buffer_ptr >= MAXKEYBYTES) {
-					rd_started = false;
-					unsigned char * keybuffer;
-					unsigned int keylen;
-					get_key_buffer(buffer, buffer_ptr, &keybuffer, &keylen);
-
-					key_to_md5hash(keybuffer, keylen, md5digest);
-
-					for (int i=0; i<MD5_DIGEST_LENGTH; i++) {
-						fprintf(stdout, "%02x", md5digest[i]);
-					}
-						
-					fprintf(stdout, "\n");
-					fflush(stdout);
-					
-					if (validate_key(md5digest, ACCESSREQ)) {
-						fprintf(stdout, "%s access OK\n", ACCESSREQ);
-						fflush(stdout);
-
-						int status = write(serial, KEYVALIDSEQ, strlen(KEYVALIDSEQ));
-
-						if (status < 0) {
-							fprintf(stdout, "Opening lock failed!\n");
-							fflush(stdout);
-						}
-
-					} else {
-						fprintf(stdout, "Access denied for %s/", ACCESSREQ);
-
-						for (int i=0; i<MD5_DIGEST_LENGTH; i++) {
-							fprintf(stdout, "%02x", md5digest[i]);
-						}
-						
-						fprintf(stdout, "\n");
-						fflush(stdout);
-					}
-
-					buffer_ptr = 0;
-					free(keybuffer);
-										
+			} else {
+				if (!rd_started) {
+					rd_started = true;
 				}
+				
+				for (int i=0; i<length; i++) {
+					if (readbuffer[i] != '\n') {
+						jsonbuffer[jsonbufferptr++] = readbuffer[i];
+					} else {
+						jsonbuffer[jsonbufferptr] = '\0';
+						printf("READ: %s\n", jsonbuffer);
+						
+						cJSON *json = cJSON_Parse(jsonbuffer);
+						if (!json) {
+							printf("Error before: [%s]\n",cJSON_GetErrorPtr());
+						} else {
+							char * keycode = cJSON_GetObjectItem(json, "keycode")->valuestring;
+							char * pincode = cJSON_GetObjectItem(json, "pincode")->valuestring;
+
+							fprintf(stdout, "Keycode: %s\n", keycode);
+							fprintf(stdout, "Pincode: %s\n", pincode);
+
+							key_to_md5hash((unsigned char *)keycode, strlen(keycode), md5digest);
+
+							fprintf(stdout, "Keyhash: ");
+
+							for (int i=0; i<MD5_DIGEST_LENGTH; i++) {
+								fprintf(stdout, "%02x", md5digest[i]);
+							}
+
+							fprintf(stdout, "\n");
+							fflush(stdout);
+							
+							if (validate_key(md5digest, ACCESSREQ, pincode)) {
+								fprintf(stdout, "%s access OK\n\n", ACCESSREQ);
+								fflush(stdout);
+
+								int status = write(serial, KEYVALIDSEQ, strlen(KEYVALIDSEQ));
+
+								if (status < 0) {
+									fprintf(stdout, "Opening lock failed!\n");
+									fflush(stdout);
+								}
+
+							} else {
+								fprintf(stdout, "Access denied for %s/", ACCESSREQ);
+
+								for (int i=0; i<MD5_DIGEST_LENGTH; i++) {
+									fprintf(stdout, "%02x", md5digest[i]);
+								}
+						
+								fprintf(stdout, "\n\n");
+								fflush(stdout);
+							}
+							
+							cJSON_Delete(json);
+							
+						}
+						
+						rd_started = false;
+						
+						memset(jsonbuffer, 0, sizeof(jsonbuffer) * sizeof(char));
+						jsonbufferptr = 0;
+					}
+				}
+				
 			}
 		}
 

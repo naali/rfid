@@ -1,14 +1,20 @@
 CC=gcc
-CFLAGS=-I. -std=gnu99 -Wall -lcrypto -lcurl
+CFLAGS=-I. -std=gnu99 -Wall -lcrypto -lcurl -lm -Wstrict-prototypes -Wwrite-strings
 INSTALLDIR=/opt/rfid
 
 all: rfidread
 
-rfidread: relaycontrol.o 
-	$(CC) -o rfidread rfidread.c relaycontrol.o $(CFLAGS)
+cJSON_Utils: cJSON_Utils.c
+	$(cc) -c cJSON_Utils.c $(CFLAGS)
 
-relaycontrol.o: relaycontrol.c
-	$(CC) -c relaycontrol.c -lopenssl $(CFLAGS)
+cJSON: cJSON.c
+	$(cc) -c cJSON.c $(CFLAGS)
+
+rfidread: serialsetup.o cJSON_Utils.o cJSON.o
+	$(CC) -o rfidread rfidread.c serialsetup.o cJSON.c cJSON_Utils.c $(CFLAGS)
+
+serialsetup.o: serialsetup.c
+	$(CC) -c serialsetup.c -lopenssl $(CFLAGS)
 
 clean:
 	rm *.o rfidread
