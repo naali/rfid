@@ -51,9 +51,9 @@ CREATE TABLE `readers` (
  	PRIMARY KEY (id)
 ) ENGINE=InnoDB;
 
-DROP USER 'rfid_rpi'@'localhost';
-DROP USER 'rfid_web'@'localhost';
-DROP USER 'rfid_admin'@'localhost';
+DROP USER IF EXISTS 'rfid_rpi'@'localhost';
+DROP USER IF EXISTS 'rfid_web'@'localhost';
+DROP USER IF EXISTS 'rfid_admin'@'localhost';
 
 CREATE USER 'rfid_rpi'@'localhost' IDENTIFIED BY 'RFID_RPI_PASSWD';
 GRANT SELECT ON `rfid`.`members` TO 'rfid_rpi'@'localhost';
