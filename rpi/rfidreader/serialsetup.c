@@ -6,7 +6,7 @@
 #include <errno.h>
 #include <fcntl.h>
 
-#include "relaycontrol.h"
+#include "serialsetup.h"
 
 int setup_serial_interface(int fd, int speed, int parity) {
 	struct termios tty;
@@ -47,7 +47,7 @@ int close_serial_interface(int filedesc) {
 	return 0;
 }
 
-int open_serial_interface(char * devicename) {
+int open_serial_interface(const char * devicename) {
 	int filedesc = open(devicename, O_RDWR | O_NOCTTY | O_SYNC);
 	return filedesc;
 }
