@@ -129,7 +129,7 @@
 
 		} else {
 			http_response_code(404);
-			echo "ummm, no1?\n";
+			echo "ummm, no?\n";
 			exit;
 		}
 	
@@ -138,12 +138,12 @@
 			header('Keyhash: ' . md5("Kulosaari" . $keyhash . $accessreq . "00570") );
 		} else {
 			http_response_code(404);
-			echo "ummm, no2?\n";
+			echo "ummm, no?\n";
 		}
 	
 		$mysqli->close();
 	}  else {
 		http_response_code(404);
-		echo "ummm, no3?\n";
+		echo "ummm, no?\n";
 	}
 ?>
