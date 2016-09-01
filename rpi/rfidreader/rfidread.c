@@ -19,8 +19,9 @@
 #define RFIDDEVICE "/dev/ttyUSB1"
 #define RELAYDEVICE "/dev/ttyUSB0"
 #define KEYVALIDSEQ "\xAF\xFF\x05\x04\xDF"
+#define RFIDOKSEQ "ok\n"
 #define ACCESSREQ "SIDEDOOR" /* ACCESSREQ = What this reader controls */
-#define KEYSERVERURL "https://club00570.org/rfid/index.php" /* KEYSERVERURL = Where is rfid/index.php? */
+#define KEYSERVERURL "https://example.com/rfid/index.php" /* KEYSERVERURL = Where is rfid/index.php? */
 #define HASHING1 "SOMETHING1"
 #define HASHING2 "SOMETHING2"
 #define HTTPAUTH_PASSWORD "password12345"
@@ -152,7 +153,7 @@ bool validate_key(unsigned char * md5digest, const char * accessreq, char * pinc
 }
 
 int main (void) {
-	int RFIDReaderFD, serial;
+	int RFIDReaderFD, RELAYdeviceFD;
 	bool rd_started = false;
 	
 	printf("Trying to open RFID reader: %s\n", RFIDDEVICE);
@@ -169,17 +170,17 @@ int main (void) {
 	unsigned char * md5digest = calloc(MD5_DIGEST_LENGTH + 1, sizeof(unsigned char));
 
 	printf("Trying to open USB-serial relay: %s\n", RELAYDEVICE);
-	serial = open_serial_interface(RELAYDEVICE);
+	RELAYdeviceFD = open_serial_interface(RELAYDEVICE);
 
-	if (serial > 0) {
-		int retval = setup_serial_interface(serial, B9600, 0);
+	if (RELAYdeviceFD > 0) {
+		int retval = setup_serial_interface(RELAYdeviceFD, B9600, 0);
 		if (retval != 0) {
 			printf("Serial configuration failed\n");
 			exit(255);
 		}
 	}
 
-	if (RFIDReaderFD != 0 && serial > 0) {
+	if (RFIDReaderFD != 0 && RELAYdeviceFD > 0) {
 		printf("Listening to RFID reader: %s\n", RFIDDEVICE);
 
 		char readbuffer[1024];
@@ -206,53 +207,78 @@ int main (void) {
 					if (readbuffer[i] != '\n') {
 						jsonbuffer[jsonbufferptr++] = readbuffer[i];
 					} else {
-						jsonbuffer[jsonbufferptr] = '\0';
-						printf("READ: %s\n", jsonbuffer);
+						cJSON *json = NULL;
 						
-						cJSON *json = cJSON_Parse(jsonbuffer);
-						if (!json) {
-							printf("Error before: [%s]\n",cJSON_GetErrorPtr());
-						} else {
-							char * keycode = cJSON_GetObjectItem(json, "keycode")->valuestring;
-							char * pincode = cJSON_GetObjectItem(json, "pincode")->valuestring;
-
-							fprintf(stdout, "Keycode: %s\n", keycode);
-							fprintf(stdout, "Pincode: %s\n", pincode);
-
-							key_to_md5hash((unsigned char *)keycode, strlen(keycode), md5digest);
-
-							fprintf(stdout, "Keyhash: ");
-
-							for (int i=0; i<MD5_DIGEST_LENGTH; i++) {
-								fprintf(stdout, "%02x", md5digest[i]);
-							}
-
-							fprintf(stdout, "\n");
-							fflush(stdout);
+						if (strlen(jsonbuffer) > 0) {
+							jsonbuffer[jsonbufferptr] = '\0';
+							printf("READ: %s\n", jsonbuffer);
+						
+							json = cJSON_Parse(jsonbuffer);
 							
-							if (validate_key(md5digest, ACCESSREQ, pincode)) {
-								fprintf(stdout, "%s access OK\n\n", ACCESSREQ);
-								fflush(stdout);
+							if (!json) {
+								printf("Error before: [%s]\n",cJSON_GetErrorPtr());
+							}
+						}
+						
+						if (json) {
+							if (cJSON_HasObjectItem(json, "status")) {
+								char * status = cJSON_GetObjectItem(json, "status")->valuestring;
+								printf("status: %s\n", status);
+							
+							} else if (cJSON_HasObjectItem(json, "ping")) {
+								double ping = cJSON_GetObjectItem(json, "ping")->valuedouble;
+								printf("ping: %f\n", ping);
 
-								int status = write(serial, KEYVALIDSEQ, strlen(KEYVALIDSEQ));
+							} else if (cJSON_HasObjectItem(json, "keycode") && cJSON_HasObjectItem(json, "pincode")) {
+								char * keycode = cJSON_GetObjectItem(json, "keycode")->valuestring;
+								char * pincode = cJSON_GetObjectItem(json, "pincode")->valuestring;
+							
+								fprintf(stdout, "Keycode: %s\n", keycode);
+								fprintf(stdout, "Pincode: %s\n", pincode);
 
-								if (status < 0) {
-									fprintf(stdout, "Opening lock failed!\n");
-									fflush(stdout);
-								}
+								key_to_md5hash((unsigned char *)keycode, strlen(keycode), md5digest);
 
-							} else {
-								fprintf(stdout, "Access denied for %s/", ACCESSREQ);
+								fprintf(stdout, "Keyhash: ");
 
 								for (int i=0; i<MD5_DIGEST_LENGTH; i++) {
 									fprintf(stdout, "%02x", md5digest[i]);
 								}
-						
-								fprintf(stdout, "\n\n");
+
+								fprintf(stdout, "\n");
 								fflush(stdout);
-							}
 							
-							cJSON_Delete(json);
+								if (validate_key(md5digest, ACCESSREQ, pincode)) {
+									fprintf(stdout, "%s access OK\n\n", ACCESSREQ);
+									fflush(stdout);
+
+									int status = write(RELAYdeviceFD, KEYVALIDSEQ, strlen(KEYVALIDSEQ));
+
+									if (status < 0) {
+										fprintf(stdout, "Opening lock failed!\n");
+										fflush(stdout);
+									}
+									
+									status = write(RFIDReaderFD, RFIDOKSEQ, strlen(RFIDOKSEQ));
+									
+									if (status < 0) {
+										fprintf(stdout, "Sending ok to rfidreader failed!\n");
+										fflush(stdout);
+									}
+
+
+								} else {
+									fprintf(stdout, "Access denied for %s/", ACCESSREQ);
+
+									for (int i=0; i<MD5_DIGEST_LENGTH; i++) {
+										fprintf(stdout, "%02x", md5digest[i]);
+									}
+						
+									fprintf(stdout, "\n\n");
+									fflush(stdout);
+								}
+							
+								cJSON_Delete(json);
+							}
 							
 						}
 						
