@@ -1,11 +1,7 @@
 <?php
 	require_once("db_rpi_config.php");
 	require_once("telegram_config.php");
-	
-	global $telegram_config_api_url;
-	global $telegram_config_id;
-	global $telegram_config_chat_id;
-	
+
 	function updateLastSeen($sqlclient, $readername) {
 		$result = $sqlclient->query(
 			"INSERT INTO `readers` (readername, ts_created) VALUES ('$readername', CURRENT_TIMESTAMP) ".
@@ -14,6 +10,10 @@
 	}
 
 	function findKey($sqlclient, $keyhash, $accessreq, $pincode) {
+		global $telegram_config_api_url;
+		global $telegram_config_id;
+		global $telegram_config_chat_id;
+
 		$keyhash = $sqlclient->real_escape_string($keyhash);
 		$accessreq = $sqlclient->real_escape_string($accessreq);
 		$pincode = $sqlclient->real_escape_string($pincode);
@@ -63,7 +63,7 @@
 							" VALUES ('$membersmname', $membersid, '$keyshash', '$keysktype', $keysactive, '$accessreq', $granted)"
 						)) {
 						
-						$url = $telegram_config_api_url;
+						$url = "";
 						$url .= $telegram_config_api_url.$telegram_config_id."/"."sendMessage"."?";
 						$url .= "chat_id=".$telegram_config_chat_id."&";
 						$url .= "parse_mode=HTML"."&";
