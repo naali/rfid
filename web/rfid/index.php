@@ -1,5 +1,6 @@
 <?php
 	require_once("db_rpi_config.php");
+	require_once("telegram_config.php");
 	
 	function updateLastSeen($sqlclient, $readername) {
 		$result = $sqlclient->query(
@@ -57,7 +58,18 @@
 							"INSERT INTO `accesses` (ownername, ownerid, hash, ktype, active, request, agranted)".
 							" VALUES ('$membersmname', $membersid, '$keyshash', '$keysktype', $keysactive, '$accessreq', $granted)"
 						)) {
-						// Everything went smoothly
+						
+						$url = $telegram_api_url;
+						$url .= $telegram_config_api_url.$telegram_config_id."/"."sendMessage"."?";
+						$url .= "chat_id=".$telegram_config_chat_id."&";
+						$url .= "parse_mode=HTML"."&";
+						$url .= "disable_notification=true"."&";
+
+						date_default_timezone_set("Europe/Helsinki");
+						$bottext = date("Y-m-d H:i:s")."\n"."<b>".$membersmname."</b>"." saapui kerholle";
+	
+						$url .= "text=".urlencode($bottext);
+						$tmp = file_get_contents($url);
 					} else {
 						// Log the access error?
 					}
